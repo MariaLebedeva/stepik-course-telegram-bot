@@ -1,10 +1,34 @@
 import telebot
+from datetime import date, timedelta
 
 token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
 
 bot = telebot.TeleBot(token)
 
 states = {}
+
+WEATHER_DATA = {
+    'ноябрь':{
+        14: "2 задачи",
+        15: "нет задач",
+        16: "1 задача"
+    }
+}
+
+MONTHS = {
+    1: "январь",
+    2: "февраль",
+    3: "март",
+    4: "апрель",
+    5: "май",
+    6: "июнь",
+    7: "июль",
+    8: "август",
+    9: "сентябрь",
+    10: "октябрь",
+    11: "ноябрь",
+    12: "декабрь"
+}
 
 MAIN_STATE = 'main'
 TASK_DATE_STATE = 'task_date'
@@ -23,7 +47,7 @@ def send_welcome(message):
 
 def main_handler(message):
     if message.text == "Покажи задачи":
-        bot.reply_to(message, "Уточни дату")
+        bot.reply_to(message, "А какая дата? Введи в формате 'Месяц, число'.")
         states[message.from_user.id] = TASK_DATE_STATE
     elif message.text == "Привет!":
         bot.reply_to(message, say_hello(message.from_user.first_name, message.from_user.language_code))
@@ -33,13 +57,23 @@ def main_handler(message):
 
 def task_date_handler(message):
     if message.text == "Сегодня":
-        bot.send_message(message.from_user.id, "У тебе 2 задачи")
+        today = date.today()
+        month_name = MONTHS[today.month]
+        current_weather = WEATHER_DATA[month_name][today.day]
+        bot.send_message(message.from_user.id, current_weather)
         states[message.from_user.id] = MAIN_STATE
     elif message.text == "Завтра":
-        bot.send_message(message.from_user.id, "У тебя нет задач")
+        today = date.today() + timedelta(days=1)
+        month_name = MONTHS[today.month]
+        current_weather = WEATHER_DATA[month_name][today.day]
+        bot.send_message(message.from_user.id, current_weather)
         states[message.from_user.id] = MAIN_STATE
     else:
-        bot.reply_to(message, "Я тебя не понял")
+        month, day = message.text.split(",")
+        day = int(day.strip())
+        month = month.lower()
+        bot.reply_to(message, WEATHER_DATA[month][day])
+        # bot.reply_to(message, "Я тебя не понял")
 
 
 @bot.message_handler(func=lambda message: True)
