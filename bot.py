@@ -6,6 +6,7 @@ token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
 bot = telebot.TeleBot(token)
 
 states = {}
+calls = {}
 
 WEATHER_DATA = {
     'ноябрь': {
@@ -46,17 +47,28 @@ def send_welcome(message):
 
 
 def main_handler(message):
+    user_id = message.from_user.id
     if "покажи задачи" in message.text.lower():
         bot.reply_to(message, "А какая дата? Введи в формате 'Месяц, число'.")
-        states[message.from_user.id] = TASK_DATE_STATE
+        states[user_id] = TASK_DATE_STATE
     elif "привет" in message.text.lower():
         bot.reply_to(message, say_hello(message.from_user.first_name, message.from_user.language_code))
+    elif "вызовы" in message.text.lower():
+        if user_id in calls:
+            bot.send_message(user_id, str(calls[user_id]))
+        else:
+            bot.send_message(user_id, "0")
     else:
         bot.reply_to(message, "Я тебя не понял")
 
 
 def task_date_handler(message):
-    if "cегодня" in message.text.lower():
+    user_id = message.from_user.id
+    if user_id not in calls:
+        calls[user_id] = 0
+    calls[user_id] += 1
+
+    if "сегодня" in message.text.lower():
         today = date.today()
         month_name = MONTHS[today.month]
         current_weather = WEATHER_DATA[month_name][today.day]
@@ -72,7 +84,8 @@ def task_date_handler(message):
         month, day = message.text.split(",")
         day = int(day.strip())
         month = month.lower()
-        bot.reply_to(message, WEATHER_DATA[month][day])
+        current_weather = WEATHER_DATA[month][day]
+        bot.send_message(message.from_user.id, "Количество задач {0}".format(current_weather))
         # bot.reply_to(message, "Я тебя не понял")
 
 
