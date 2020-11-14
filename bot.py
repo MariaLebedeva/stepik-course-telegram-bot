@@ -46,23 +46,23 @@ def send_welcome(message):
 
 
 def main_handler(message):
-    if message.text == "Покажи задачи":
+    if "покажи задачи" in message.text.lower():
         bot.reply_to(message, "А какая дата? Введи в формате 'Месяц, число'.")
         states[message.from_user.id] = TASK_DATE_STATE
-    elif message.text == "Привет!":
+    elif "привет" in message.text.lower():
         bot.reply_to(message, say_hello(message.from_user.first_name, message.from_user.language_code))
     else:
         bot.reply_to(message, "Я тебя не понял")
 
 
 def task_date_handler(message):
-    if message.text == "Сегодня":
+    if "cегодня" in message.text.lower():
         today = date.today()
         month_name = MONTHS[today.month]
         current_weather = WEATHER_DATA[month_name][today.day]
         bot.send_message(message.from_user.id, current_weather)
         states[message.from_user.id] = MAIN_STATE
-    elif message.text == "Завтра":
+    elif "завтра" in message.text.lower():
         today = date.today() + timedelta(days=1)
         month_name = MONTHS[today.month]
         current_weather = WEATHER_DATA[month_name][today.day]
