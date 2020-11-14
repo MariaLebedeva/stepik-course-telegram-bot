@@ -8,10 +8,10 @@ bot = telebot.TeleBot(token)
 states = {}
 
 WEATHER_DATA = {
-    'ноябрь':{
-        14: "2 задачи",
-        15: "нет задач",
-        16: "1 задача"
+    'ноябрь': {
+        14: 2,
+        15: 0,
+        16: 1
     }
 }
 
@@ -60,13 +60,13 @@ def task_date_handler(message):
         today = date.today()
         month_name = MONTHS[today.month]
         current_weather = WEATHER_DATA[month_name][today.day]
-        bot.send_message(message.from_user.id, current_weather)
+        bot.send_message(message.from_user.id, "Количество задач {0}".format(current_weather))
         states[message.from_user.id] = MAIN_STATE
     elif "завтра" in message.text.lower():
         today = date.today() + timedelta(days=1)
         month_name = MONTHS[today.month]
         current_weather = WEATHER_DATA[month_name][today.day]
-        bot.send_message(message.from_user.id, current_weather)
+        bot.send_message(message.from_user.id, "Количество задач {0}".format(current_weather))
         states[message.from_user.id] = MAIN_STATE
     else:
         month, day = message.text.split(",")
