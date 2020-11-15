@@ -35,10 +35,17 @@ MAIN_STATE = 'main'
 TASK_DATE_STATE = 'task_date'
 
 
-def say_hello(user_name, lang_code):
-    if lang_code == 'en':
-        return "Hello, " + user_name + "!"
-    return "Привет, " + user_name + "!"
+@bot.message_handler(func=lambda message: True)
+def dispatcher(message):
+    user_id = message.from_user.id
+    current_user_state = states.get(user_id, MAIN_STATE)
+
+    if current_user_state == MAIN_STATE:
+        main_handler(message)
+    elif current_user_state == TASK_DATE_STATE:
+        task_date_handler(message)
+    else:
+        bot.reply_to(message, "Я тебя не понял")
 
 
 @bot.message_handler(commands=['start'])
@@ -89,17 +96,11 @@ def task_date_handler(message):
         # bot.reply_to(message, "Я тебя не понял")
 
 
-@bot.message_handler(func=lambda message: True)
-def dispatcher(message):
-    user_id = message.from_user.id
-    current_user_state = states.get(user_id, MAIN_STATE)
+def say_hello(user_name, lang_code):
+    if lang_code == 'en':
+        return "Hello, " + user_name + "!"
+    return "Привет, " + user_name + "!"
 
-    if current_user_state == MAIN_STATE:
-        main_handler(message)
-    elif current_user_state == TASK_DATE_STATE:
-        task_date_handler(message)
-    else:
-        bot.reply_to(message, "Я тебя не понял")
 
 
 bot.polling()
