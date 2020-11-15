@@ -1,3 +1,5 @@
+import random
+
 import telebot
 from datetime import date, timedelta
 
@@ -83,6 +85,11 @@ def task_date_handler(message):
         today = date.today() + timedelta(days=1)
         month_name = MONTHS[today.month]
         answer_user(month_name, today.day, user_id)
+    elif "рандом" in message.text.lower():
+        month_code = random.choice([x for x in range(12)]) + 1
+        day = random.choice([x for x in range(28)]) + 1
+        bot.send_message(user_id, "{0}, {1}".format(MONTHS[month_code], day))
+        answer_user(MONTHS[month_code], day, user_id)
     else:
         month, day = message.text.split(",")
         day = int(day.strip())
@@ -95,9 +102,9 @@ def answer_user(month_name, day, user_id):
     if check_data_is_not_empty(month_name, day):
         current_weather = TASK_DATA[month_name][day]
         bot.send_message(user_id, "Количество задач {0}".format(current_weather))
-        states[user_id] = MAIN_STATE
     else:
         bot.send_message(user_id, "Нет данных в хранилище.")
+    states[user_id] = MAIN_STATE
 
 
 def check_data_is_not_empty(month, day):
@@ -111,7 +118,6 @@ def say_hello(user_name, lang_code):
     if lang_code == 'en':
         return "Hello, " + user_name + "!"
     return "Привет, " + user_name + "!"
-
 
 
 bot.polling()
