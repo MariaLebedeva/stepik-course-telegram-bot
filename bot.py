@@ -91,8 +91,12 @@ def task_date_handler(message):
         month, day = message.text.split(",")
         day = int(day.strip())
         month = month.lower()
-        current_weather = WEATHER_DATA[month][day]
-        bot.send_message(message.from_user.id, "Количество задач {0}".format(current_weather))
+        if month in WEATHER_DATA:
+            if day in WEATHER_DATA[month]:
+                current_weather = WEATHER_DATA[month][day]
+                bot.send_message(message.from_user.id, "Количество задач {0}".format(current_weather))
+        else:
+            bot.send_message(message.from_user.id, "Нет данных в хранилище.")
         # bot.reply_to(message, "Я тебя не понял")
 
 
