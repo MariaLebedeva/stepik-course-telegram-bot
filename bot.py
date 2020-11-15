@@ -35,6 +35,11 @@ MAIN_STATE = 'main'
 TASK_DATE_STATE = 'task_date'
 
 
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Это бот-планировщик. Он поможет сориентироваться в твоих задачах.")
+
+
 @bot.message_handler(func=lambda message: True)
 def dispatcher(message):
     user_id = message.from_user.id
@@ -46,11 +51,6 @@ def dispatcher(message):
         task_date_handler(message)
     else:
         bot.reply_to(message, "Я тебя не понял")
-
-
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Это бот-планировщик. Он поможет сориентироваться в твоих задачах.")
 
 
 def main_handler(message):
@@ -78,26 +78,33 @@ def task_date_handler(message):
     if "сегодня" in message.text.lower():
         today = date.today()
         month_name = MONTHS[today.month]
-        current_weather = TASK_DATA[month_name][today.day]
-        bot.send_message(user_id, "Количество задач {0}".format(current_weather))
-        states[user_id] = MAIN_STATE
+        answer_user(month_name, today.day, user_id)
     elif "завтра" in message.text.lower():
         today = date.today() + timedelta(days=1)
         month_name = MONTHS[today.month]
-        current_weather = TASK_DATA[month_name][today.day]
-        bot.send_message(user_id, "Количество задач {0}".format(current_weather))
-        states[user_id] = MAIN_STATE
+        answer_user(month_name, today.day, user_id)
     else:
         month, day = message.text.split(",")
         day = int(day.strip())
         month = month.lower()
-        if month in TASK_DATA:
-            if day in TASK_DATA[month]:
-                current_weather = TASK_DATA[month][day]
-                bot.send_message(user_id, "Количество задач {0}".format(current_weather))
-        else:
-            bot.send_message(user_id, "Нет данных в хранилище.")
+        answer_user(month, day, user_id)
         # bot.reply_to(message, "Я тебя не понял")
+
+
+def answer_user(month_name, day, user_id):
+    if check_data_is_not_empty(month_name, day):
+        current_weather = TASK_DATA[month_name][day]
+        bot.send_message(user_id, "Количество задач {0}".format(current_weather))
+        states[user_id] = MAIN_STATE
+    else:
+        bot.send_message(user_id, "Нет данных в хранилище.")
+
+
+def check_data_is_not_empty(month, day):
+    if month in TASK_DATA:
+        if day in TASK_DATA[month]:
+            return True
+    return False
 
 
 def say_hello(user_name, lang_code):
