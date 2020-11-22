@@ -66,16 +66,16 @@ def details_handler(message):
     user_id = message.from_user.id
     data = requests.get(weather_api_url, params).json()
     if "temperature" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {}C is {}".format(data["name"], data["main"]["temp"]))
+        bot.reply_to(message, "Current temperature in {} is {}°C".format(data["name"], data["main"]["temp"]))
         states[user_id] = MAIN_STATE
     elif "pressure" in message.text.lower():
-        bot.reply_to(message, "Current pressure in {} is {}".format(data["name"], data["main"]["pressure"]))
+        bot.reply_to(message, "Current pressure in {} is {}hPa".format(data["name"], data["main"]["pressure"]))
         states[user_id] = MAIN_STATE
     elif "humidity" in message.text.lower():
         bot.reply_to(message, "Current humidity in {} is {}%".format(data["name"], data["main"]["humidity"]))
         states[user_id] = MAIN_STATE
     elif "all" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {}C is {}, pressure is {}, humidity {}%".format(data["name"],
+        bot.reply_to(message, "Current temperature in {} is {}°C, pressure is {}hPa, humidity {}%".format(data["name"],
                                                                                                     data["main"][
                                                                                                         "temp"],
                                                                                                     data["main"][
