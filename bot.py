@@ -52,7 +52,12 @@ def main_handler(message):
 
 
 def city_handler(message):
-    params["q"] = message.text
+    try:
+        params["q"] = message.text
+        requests.get(weather_api_url, params).json()["name"]
+    except KeyError:
+        bot.reply_to(message, "Incorrect city, try to input the city again")
+        return
     bot.reply_to(message, "What details would you know: temperature, pressure, humidity or all?")
     states[message.from_user.id] = DETAILS_STATE
 
@@ -61,7 +66,7 @@ def details_handler(message):
     user_id = message.from_user.id
     data = requests.get(weather_api_url, params).json()
     if "temperature" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}".format(data["name"], data["main"]["temp"]))
+        bot.reply_to(message, "Current temperature in {}C is {}".format(data["name"], data["main"]["temp"]))
         states[user_id] = MAIN_STATE
     elif "pressure" in message.text.lower():
         bot.reply_to(message, "Current pressure in {} is {}".format(data["name"], data["main"]["pressure"]))
@@ -70,7 +75,7 @@ def details_handler(message):
         bot.reply_to(message, "Current humidity in {} is {}%".format(data["name"], data["main"]["humidity"]))
         states[user_id] = MAIN_STATE
     elif "all" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}, pressure is {}, humidity {}%".format(data["name"],
+        bot.reply_to(message, "Current temperature in {}C is {}, pressure is {}, humidity {}%".format(data["name"],
                                                                                                     data["main"][
                                                                                                         "temp"],
                                                                                                     data["main"][
