@@ -1,45 +1,28 @@
 import random
-
-import telebot
 from datetime import date, timedelta
+import telebot
+import requests
+
 
 token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
+
+weather_api_id = '744c9b39d3c73ea63d1289e2f8e9ce16'
+weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
 
 bot = telebot.TeleBot(token)
 
 states = {}
-calls = {}
-
-TASK_DATA = {
-    'ноябрь': {
-        14: 2,
-        15: 0,
-        16: 1
-    }
-}
-
-MONTHS = {
-    1: "январь",
-    2: "февраль",
-    3: "март",
-    4: "апрель",
-    5: "май",
-    6: "июнь",
-    7: "июль",
-    8: "август",
-    9: "сентябрь",
-    10: "октябрь",
-    11: "ноябрь",
-    12: "декабрь"
-}
+params = {'units': 'metric', 'appid': weather_api_id }
+data = None
 
 MAIN_STATE = 'main'
-TASK_DATE_STATE = 'task_date'
+CITY_STATE = 'city'
+DETAILS_STATE = 'details'
 
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Это бот-планировщик. Он поможет сориентироваться в твоих задачах.")
+    bot.reply_to(message, "This bot will show you current weather in any city")
 
 
 @bot.message_handler(func=lambda message: True)
@@ -49,75 +32,54 @@ def dispatcher(message):
 
     if current_user_state == MAIN_STATE:
         main_handler(message)
-    elif current_user_state == TASK_DATE_STATE:
-        task_date_handler(message)
+    elif current_user_state == CITY_STATE:
+        city_handler(message)
+    elif current_user_state == DETAILS_STATE:
+        details_handler(message)
     else:
-        bot.reply_to(message, "Я тебя не понял")
+        bot.reply_to(message, "I didn't understand you")
 
 
 def main_handler(message):
     user_id = message.from_user.id
-    if "покажи задачи" in message.text.lower():
-        bot.reply_to(message, "А какая дата? Введи в формате 'Месяц, число'.")
-        states[user_id] = TASK_DATE_STATE
-    elif "привет" in message.text.lower():
-        bot.reply_to(message, say_hello(message.from_user.first_name, message.from_user.language_code))
-    elif "вызовы" in message.text.lower():
-        if user_id in calls:
-            bot.send_message(user_id, str(calls[user_id]))
-        else:
-            bot.send_message(user_id, "0")
+    if "show weather" in message.text.lower():
+        bot.reply_to(message, "In which city?")
+        states[user_id] = CITY_STATE
+    elif "hello" in message.text.lower():
+        bot.reply_to(message, "Hello, {}!".format(message.from_user.first_name))
     else:
-        bot.reply_to(message, "Я тебя не понял")
+        bot.reply_to(message, "I didn't understand you")
 
 
-def task_date_handler(message):
+def city_handler(message):
+    params["q"] = message.text
+    bot.reply_to(message, "What details would you know: temperature, pressure, humidity or all?")
+    states[message.from_user.id] = DETAILS_STATE
+
+
+def details_handler(message):
     user_id = message.from_user.id
-    if user_id not in calls:
-        calls[user_id] = 0
-    calls[user_id] += 1
-
-    if "сегодня" in message.text.lower():
-        today = date.today()
-        month_name = MONTHS[today.month]
-        answer_user(month_name, today.day, user_id)
-    elif "завтра" in message.text.lower():
-        today = date.today() + timedelta(days=1)
-        month_name = MONTHS[today.month]
-        answer_user(month_name, today.day, user_id)
-    elif "рандом" in message.text.lower():
-        month_code = random.choice([x for x in range(12)]) + 1
-        day = random.choice([x for x in range(28)]) + 1
-        bot.send_message(user_id, "{0}, {1}".format(MONTHS[month_code], day))
-        answer_user(MONTHS[month_code], day, user_id)
+    data = requests.get(weather_api_url, params).json()
+    if "temperature" in message.text.lower():
+        bot.reply_to(message, "Current temperature in {} is {}".format(data["name"], data["main"]["temp"]))
+        states[user_id] = MAIN_STATE
+    elif "pressure" in message.text.lower():
+        bot.reply_to(message, "Current pressure in {} is {}".format(data["name"], data["main"]["pressure"]))
+        states[user_id] = MAIN_STATE
+    elif "humidity" in message.text.lower():
+        bot.reply_to(message, "Current humidity in {} is {}%".format(data["name"], data["main"]["humidity"]))
+        states[user_id] = MAIN_STATE
+    elif "all" in message.text.lower():
+        bot.reply_to(message, "Current temperature in {} is {}, pressure is {}, humidity {}%".format(data["name"],
+                                                                                                    data["main"][
+                                                                                                        "temp"],
+                                                                                                    data["main"][
+                                                                                                        "pressure"],
+                                                                                                    data["main"][
+                                                                                                        "humidity"]))
+        states[user_id] = MAIN_STATE
     else:
-        month, day = message.text.split(",")
-        day = int(day.strip())
-        month = month.lower()
-        answer_user(month, day, user_id)
-        # bot.reply_to(message, "Я тебя не понял")
-
-
-def answer_user(month_name, day, user_id):
-    if check_data_is_not_empty(month_name, day):
-        current_weather = TASK_DATA[month_name][day]
-        bot.send_message(user_id, "Количество задач {0}".format(current_weather))
-    else:
-        bot.send_message(user_id, "Нет данных в хранилище.")
-    states[user_id] = MAIN_STATE
-
-
-def check_data_is_not_empty(month, day):
-    if month in TASK_DATA:
-        if day in TASK_DATA[month]:
-            return True
-    return False
-
-
-def say_hello(user_name, lang_code):
-    if lang_code == 'en':
-        return "Hello, " + user_name + "!"
-    return "Привет, " + user_name + "!"
+        bot.reply_to(message, "I didn't understand you")
 
 
 bot.polling()
