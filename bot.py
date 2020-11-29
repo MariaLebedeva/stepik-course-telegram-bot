@@ -1,19 +1,16 @@
-import random
-from datetime import date, timedelta
 import telebot
 import requests
 
 
 token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
+bot = telebot.TeleBot(token)
 
 weather_api_id = '744c9b39d3c73ea63d1289e2f8e9ce16'
 weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
 
-bot = telebot.TeleBot(token)
-
 states = {}
 params = {'units': 'metric', 'appid': weather_api_id }
-data = None
+weather_data = None
 
 MAIN_STATE = 'main'
 CITY_STATE = 'city'
@@ -54,7 +51,9 @@ def main_handler(message):
 def city_handler(message):
     try:
         params["q"] = message.text
-        requests.get(weather_api_url, params).json()["name"]
+        global weather_data
+        weather_data = requests.get(weather_api_url, params).json()
+        weather_data['name']
     except KeyError:
         bot.reply_to(message, "Incorrect city, try to input the city again")
         return
@@ -64,23 +63,23 @@ def city_handler(message):
 
 def details_handler(message):
     user_id = message.from_user.id
-    data = requests.get(weather_api_url, params).json()
+    global weather_data
     if "temperature" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}°C".format(data["name"], data["main"]["temp"]))
+        bot.reply_to(message, "Current temperature in {} is {}°C".format(weather_data["name"], weather_data["main"]["temp"]))
         states[user_id] = MAIN_STATE
     elif "pressure" in message.text.lower():
-        bot.reply_to(message, "Current pressure in {} is {}hPa".format(data["name"], data["main"]["pressure"]))
+        bot.reply_to(message, "Current pressure in {} is {}hPa".format(weather_data["name"], weather_data["main"]["pressure"]))
         states[user_id] = MAIN_STATE
     elif "humidity" in message.text.lower():
-        bot.reply_to(message, "Current humidity in {} is {}%".format(data["name"], data["main"]["humidity"]))
+        bot.reply_to(message, "Current humidity in {} is {}%".format(weather_data["name"], weather_data["main"]["humidity"]))
         states[user_id] = MAIN_STATE
     elif "all" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}°C, pressure is {}hPa, humidity {}%".format(data["name"],
-                                                                                                    data["main"][
+        bot.reply_to(message, "Current temperature in {} is {}°C, pressure is {}hPa, humidity {}%".format(weather_data["name"],
+                                                                                                          weather_data["main"][
                                                                                                         "temp"],
-                                                                                                    data["main"][
+                                                                                                          weather_data["main"][
                                                                                                         "pressure"],
-                                                                                                    data["main"][
+                                                                                                          weather_data["main"][
                                                                                                         "humidity"]))
         states[user_id] = MAIN_STATE
     else:
