@@ -5,7 +5,7 @@ import os
 import redis
 
 
-token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
+token = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(token)
 
 weather_api_id = '744c9b39d3c73ea63d1289e2f8e9ce16'
