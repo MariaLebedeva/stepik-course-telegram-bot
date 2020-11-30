@@ -1,6 +1,8 @@
 import telebot
 import requests
 import json
+import os
+import redis
 
 
 token = '325273800:AAGrT1sh8FREiy2i_Xss865c9tJDP3rRLzg'
@@ -15,32 +17,56 @@ MAIN_STATE = 'main'
 CITY_STATE = 'city'
 DETAILS_STATE = 'details'
 
+redis_url = os.environ.get('REDIS_URL')
 
-try:
-    data = json.load(open("data.json", "r", encoding="utf-8"))
-except FileNotFoundError:
-    data = {
-        'states': {},
-        MAIN_STATE: {
+if redis_url is None:
+    try:
+        data = json.load(open("data.json", "r", encoding="utf-8"))
+    except FileNotFoundError:
+        data = {
+            'states': {},
+            MAIN_STATE: {
 
-        },
-        CITY_STATE: {
+            },
+            CITY_STATE: {
 
-        },
-        DETAILS_STATE: {
-            # user_id: city_name
+            },
+            DETAILS_STATE: {
+                # user_id: city_name
+            }
         }
-    }
+else:
+    redis_db = redis.from_url(redis_url)
+    raw_data = redis_db.get("data")
+    if raw_data is None:
+        data = {
+            'states': {},
+            MAIN_STATE: {
+
+            },
+            CITY_STATE: {
+
+            },
+            DETAILS_STATE: {
+                # user_id: city_name
+            }
+        }
+    else:
+        data = json.loads(raw_data)
 
 
 def change_data(user_id, key, value):
     data[key][user_id] = value
-    json.dump(
-        data,
-        open("data.json", "w", encoding="utf=8"),
-        indent=2,
-        ensure_ascii=False
-    )
+    if redis_url is None:
+        json.dump(
+            data,
+            open("data.json", "w", encoding="utf=8"),
+            indent=2,
+            ensure_ascii=False
+        )
+    else:
+        redis_db = redis.from_url(redis_url)
+        redis_db.set("data", json.dumps(data))
 
 
 @bot.message_handler(commands=['start'])
