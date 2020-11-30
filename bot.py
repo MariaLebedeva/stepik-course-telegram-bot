@@ -8,7 +8,7 @@ import redis
 token = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(token)
 
-weather_api_id = '744c9b39d3c73ea63d1289e2f8e9ce16'
+weather_api_id = os.environ.get('WEATHER_API_ID')
 weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
 
 params = {'units': 'metric', 'appid': weather_api_id }
