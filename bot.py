@@ -28,7 +28,7 @@ except FileNotFoundError:
 
         },
         DETAILS_STATE: {
-            # city name
+            # user_id: city_name
         }
     }
 
@@ -84,11 +84,12 @@ def city_handler(message):
         return
     bot.reply_to(message, "What details would you know: temperature, pressure, humidity or all?")
     change_data(user_id, "states", DETAILS_STATE)
-    # change_data(user_id, DETAILS_STATE, message.text.lower)
+    change_data(user_id, DETAILS_STATE, message.text)
 
 
 def details_handler(message):
     user_id = str(message.from_user.id)
+    params["q"] = data[DETAILS_STATE][user_id]
     weather_data = requests.get(weather_api_url, params).json()
     if "temperature" in message.text.lower():
         bot.reply_to(message, "Current temperature in {} is {}°C".format(weather_data["name"], weather_data["main"]["temp"]))
