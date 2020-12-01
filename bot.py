@@ -5,6 +5,7 @@ import json
 import os
 import redis
 
+
 token = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(token)
 
@@ -16,6 +17,20 @@ params = {'units': 'metric', 'appid': weather_api_id}
 MAIN_STATE = 'main'
 CITY_STATE = 'city'
 DETAILS_STATE = 'details'
+START_DATA = {
+    'states': {},
+    MAIN_STATE: {
+
+    },
+    CITY_STATE: {
+
+    },
+    DETAILS_STATE: {
+        # user_id: city_name
+    }
+}
+
+popular_cities = {}
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -23,34 +38,12 @@ if redis_url is None:
     try:
         data = json.load(open("data.json", "r", encoding="utf-8"))
     except FileNotFoundError:
-        data = {
-            'states': {},
-            MAIN_STATE: {
-
-            },
-            CITY_STATE: {
-
-            },
-            DETAILS_STATE: {
-                # user_id: city_name
-            }
-        }
+        data = START_DATA
 else:
     redis_db = redis.from_url(redis_url)
     raw_data = redis_db.get("data")
     if raw_data is None:
-        data = {
-            'states': {},
-            MAIN_STATE: {
-
-            },
-            CITY_STATE: {
-
-            },
-            DETAILS_STATE: {
-                # user_id: city_name
-            }
-        }
+        data = START_DATA
     else:
         data = json.loads(raw_data)
 
@@ -69,12 +62,26 @@ def change_data(user_id, key, value):
         redis_db.set("data", json.dumps(data))
 
 
+def most_popular_cities():
+    city1 = city2 = ''
+    counter1 = counter2 = 0
+    for city in popular_cities.keys():
+        if popular_cities[city] > counter1:
+            city1 = city
+            counter1 = popular_cities[city]
+        elif popular_cities[city] > counter2:
+            city2 = city
+            counter2 = popular_cities[city]
+    if city1 == "" or city2 == "":
+        return None
+    return city1, city2
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("Say hello", "Show weather")
     bot.send_message(message.chat.id, "This bot will show you current weather in any city", reply_markup=markup)
-    # bot.reply_to(message, "This bot will show you current weather in any city")
 
 
 @bot.message_handler(func=lambda message: True)
@@ -96,9 +103,12 @@ def main_handler(message):
     user_id = str(message.from_user.id)
     if "show weather" in message.text.lower():
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.row("Moscow", "Saint Petersburg")
+        cities = most_popular_cities()
+        if cities is None:
+            markup.row("Moscow", "Saint Petersburg")
+        else:
+            markup.row(*cities)
         bot.send_message(message.chat.id, "In which city? Select the city form offered or input your city.", reply_markup=markup)
-        # bot.reply_to(message, "In which city?")
         change_data(user_id, 'states', CITY_STATE)
     elif "say hello" in message.text.lower():
         bot.reply_to(message, "Hello, {}!".format(message.from_user.first_name))
@@ -114,8 +124,15 @@ def city_handler(message):
     except KeyError:
         bot.reply_to(message, "Incorrect city, try to input the city again")
         return
+
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("temperature", "pressure", "humidity", "all")
+
+    if popular_cities.get(message.text) is None:
+        popular_cities[message.text] = 1
+    else:
+        popular_cities[message.text] += 1
+
     bot.send_message(message.chat.id, "What details would you know: temperature, pressure, humidity or all?",
                      reply_markup=markup)
     change_data(user_id, "states", DETAILS_STATE)
