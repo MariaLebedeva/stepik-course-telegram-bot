@@ -1,5 +1,5 @@
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot.types import ReplyKeyboardMarkup
 import requests
 import json
 import os
@@ -27,10 +27,10 @@ START_DATA = {
     },
     DETAILS_STATE: {
         # user_id: city_name
-    }
+    },
+    'popular_cities': {}
 }
 
-popular_cities = {}
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -50,6 +50,10 @@ else:
 
 def change_data(user_id, key, value):
     data[key][user_id] = value
+    flush_on_disc()
+
+
+def flush_on_disc():
     if redis_url is None:
         json.dump(
             data,
@@ -62,16 +66,18 @@ def change_data(user_id, key, value):
         redis_db.set("data", json.dumps(data))
 
 
-def most_popular_cities():
+def most_popular_cities(user_id):
+    if data['popular_cities'].get(user_id) is None:
+        return None
     city1 = city2 = ''
     counter1 = counter2 = 0
-    for city in popular_cities.keys():
-        if popular_cities[city] > counter1:
+    for city in data['popular_cities'][user_id].keys():
+        if data['popular_cities'][user_id][city] > counter1:
             city1 = city
-            counter1 = popular_cities[city]
-        elif popular_cities[city] > counter2:
+            counter1 = data['popular_cities'][user_id][city]
+        elif data['popular_cities'][user_id][city] > counter2:
             city2 = city
-            counter2 = popular_cities[city]
+            counter2 = data['popular_cities'][user_id][city]
     if city1 == "" or city2 == "":
         return None
     return city1, city2
@@ -103,7 +109,7 @@ def main_handler(message):
     user_id = str(message.from_user.id)
     if "show weather" in message.text.lower():
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
-        cities = most_popular_cities()
+        cities = most_popular_cities(user_id)
         if cities is None:
             markup.row("Moscow", "Saint Petersburg")
         else:
@@ -128,10 +134,10 @@ def city_handler(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("temperature", "pressure", "humidity", "all")
 
-    if popular_cities.get(message.text) is None:
-        popular_cities[message.text] = 1
+    if data['popular_cities'][user_id].get(message.text) is None:
+        data['popular_cities'][user_id][message.text] = 1
     else:
-        popular_cities[message.text] += 1
+        data['popular_cities'][user_id][message.text] += 1
 
     bot.send_message(message.chat.id, "What details would you know: temperature, pressure, humidity or all?",
                      reply_markup=markup)
