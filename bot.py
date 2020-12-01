@@ -1,9 +1,9 @@
 import telebot
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import requests
 import json
 import os
 import redis
-
 
 token = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(token)
@@ -11,7 +11,7 @@ bot = telebot.TeleBot(token)
 weather_api_id = os.environ.get('WEATHER_API_ID')
 weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
 
-params = {'units': 'metric', 'appid': weather_api_id }
+params = {'units': 'metric', 'appid': weather_api_id}
 
 MAIN_STATE = 'main'
 CITY_STATE = 'city'
@@ -71,7 +71,10 @@ def change_data(user_id, key, value):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "This bot will show you current weather in any city")
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("Say hello", "Show weather")
+    bot.send_message(message.chat.id, "This bot will show you current weather in any city", reply_markup=markup)
+    # bot.reply_to(message, "This bot will show you current weather in any city")
 
 
 @bot.message_handler(func=lambda message: True)
@@ -92,9 +95,12 @@ def dispatcher(message):
 def main_handler(message):
     user_id = str(message.from_user.id)
     if "show weather" in message.text.lower():
-        bot.reply_to(message, "In which city?")
+        markup = ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.row("Moscow", "Saint Petersburg")
+        bot.send_message(message.chat.id, "In which city? Select the city form offered or input your city.", reply_markup=markup)
+        # bot.reply_to(message, "In which city?")
         change_data(user_id, 'states', CITY_STATE)
-    elif "hello" in message.text.lower():
+    elif "say hello" in message.text.lower():
         bot.reply_to(message, "Hello, {}!".format(message.from_user.first_name))
     else:
         bot.reply_to(message, "I didn't understand you")
@@ -108,7 +114,10 @@ def city_handler(message):
     except KeyError:
         bot.reply_to(message, "Incorrect city, try to input the city again")
         return
-    bot.reply_to(message, "What details would you know: temperature, pressure, humidity or all?")
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("temperature", "pressure", "humidity", "all")
+    bot.send_message(message.chat.id, "What details would you know: temperature, pressure, humidity or all?",
+                     reply_markup=markup)
     change_data(user_id, "states", DETAILS_STATE)
     change_data(user_id, DETAILS_STATE, message.text)
 
@@ -117,23 +126,33 @@ def details_handler(message):
     user_id = str(message.from_user.id)
     params["q"] = data[DETAILS_STATE][user_id]
     weather_data = requests.get(weather_api_url, params).json()
+
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("Say hello", "Show weather")
     if "temperature" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}°C".format(weather_data["name"], weather_data["main"]["temp"]))
+        bot.send_message(message.chat.id,
+                         "Current temperature in {} is {}°C".format(weather_data["name"], weather_data["main"]["temp"]),
+                         reply_markup=markup)
         change_data(user_id, 'states', MAIN_STATE)
     elif "pressure" in message.text.lower():
-        bot.reply_to(message, "Current pressure in {} is {}hPa".format(weather_data["name"], weather_data["main"]["pressure"]))
+        bot.send_message(message.chat.id, "Current pressure in {} is {}hPa".format(weather_data["name"],
+                                                                                   weather_data["main"]["pressure"]),
+                         reply_markup=markup)
         change_data(user_id, 'states', MAIN_STATE)
     elif "humidity" in message.text.lower():
-        bot.reply_to(message, "Current humidity in {} is {}%".format(weather_data["name"], weather_data["main"]["humidity"]))
+        bot.send_message(message.chat.id,
+                         "Current humidity in {} is {}%".format(weather_data["name"], weather_data["main"]["humidity"]),
+                         reply_markup=markup)
         change_data(user_id, 'states', MAIN_STATE)
     elif "all" in message.text.lower():
-        bot.reply_to(message, "Current temperature in {} is {}°C, pressure is {}hPa, humidity {}%".format(weather_data["name"],
-                                                                                                          weather_data["main"][
-                                                                                                        "temp"],
-                                                                                                          weather_data["main"][
-                                                                                                        "pressure"],
-                                                                                                          weather_data["main"][
-                                                                                                        "humidity"]))
+        bot.send_message(message.chat.id, "Current temperature in {} is {}°C, pressure is {}hPa, humidity {}%".format(
+            weather_data["name"],
+            weather_data["main"][
+                "temp"],
+            weather_data["main"][
+                "pressure"],
+            weather_data["main"][
+                "humidity"]), reply_markup=markup)
         change_data(user_id, 'states', MAIN_STATE)
     else:
         bot.reply_to(message, "I didn't understand you")
